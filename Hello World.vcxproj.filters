@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Shaders">
       <UniqueIdentifier>{c5b7a9f6-c3b6-450a-956a-d4e86a62dada}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Config">
+      <UniqueIdentifier>{cbdef7ac-b19a-4d48-9d4f-adc56a708c64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\OpenGL.cpp">
@@ -52,5 +55,19 @@
     <None Include="shaders\6.1.coordinate_systems.vs">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include=".gitattributes">
+      <Filter>Config</Filter>
+    </None>
+    <None Include=".gitignore">
+      <Filter>Config</Filter>
+    </None>
+    <None Include="README.md">
+      <Filter>Config</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="LICENSE.txt">
+      <Filter>Config</Filter>
+    </Text>
   </ItemGroup>
 </Project>
