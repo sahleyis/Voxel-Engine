@@ -106,6 +106,7 @@
       <AdditionalOptions>/w44365 %(AdditionalOptions)</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\dahir\source\repos\Hello World\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,6 +125,7 @@
       <AdditionalOptions>/w44365 %(AdditionalOptions)</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\dahir\source\repos\Hello World\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,20 +133,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="OpenGL.cpp" />
-    <ClCompile Include="FastNoiselite.h" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\OpenGL.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Chunk.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="Include\Camera.h" />
+    <ClInclude Include="Include\Chunk.h" />
+    <ClInclude Include="Include\FastNoiselite.h" />
+    <ClInclude Include="Include\resource.h" />
+    <ClInclude Include="Include\Shader.h" />
+    <ClInclude Include="Include\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="6.1.coordinate_systems.fs" />
-    <None Include="6.1.coordinate_systems.vs" />
+    <None Include="shaders\6.1.coordinate_systems.fs" />
+    <None Include="shaders\6.1.coordinate_systems.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
