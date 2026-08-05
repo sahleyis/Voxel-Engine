@@ -1,4 +1,3 @@
-// Librarys and Headers needed
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -23,7 +22,6 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-// Making the program use the Discrete GPU
 #ifdef _WIN32 
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement{ 0x00000001 };
@@ -31,10 +29,8 @@ extern "C" {
 }
 #endif
 
-
 TerrainSettings engineSettings;
 
-// Function Declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -43,15 +39,12 @@ void calculateFrameRate(GLFWwindow* window);
 void terrainGeneration(int& renderDistance, int& currentChunkX, int& currentChunkZ, FastNoiseLite& noise, TerrainSettings engineSettings, std::map<std::pair<int, int>, Chunk*>& activeChunks, std::map<std::pair<int, int>, std::future<Chunk*>>& loadingChunks);
 void UnloadChunks(int renderDistance, int currentChunkX, int currentChunkZ, std::map<std::pair<int, int>, Chunk*>& activeChunks);
 
-// Settings
 const unsigned int SCR_WIDTH{ 1200 };
 const unsigned int SCR_HEIGHT{ 720 };
 
-// Camera Object initialisation
 glm::vec3 worldOrigin{ 0.0f, 0.0f, 3.0f };
 Camera camera(worldOrigin);
 
-// Window settings
 bool firstMouse{ true };
 double lastX{ 400 };
 double lastY{ 300 };
@@ -65,10 +58,33 @@ int frameCount{ 0 };
 bool cursorCaptured{ true };
 bool shiftWasPressed{ false };
 
+unsigned int loadTexture(char const* path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(false);
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+
+    if (data) {
+        GLenum format{ static_cast<GLenum>((nrChannels == 4) ? GL_RGBA : GL_RGB) };
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        stbi_image_free(data);
+    }
+    else {
+        std::cout << "\n\nCRITICAL ERROR: FAILED TO LOAD TEXTURE: " << path << "\n\n";
+    }
+
+    return textureID;
+}
+
 int main()
 {
-
-    // Window Configuration and Initialisation
     using glm::vec3;
     using glm::mat4;
 
@@ -77,17 +93,13 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // Window Creation
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Voxel Engine", NULL, NULL);
     if (window == NULL)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
@@ -96,79 +108,32 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // Loading ALl OpenGL function Pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
 
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // Enabling Depth testing 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
-    // Initialisation our Shader object
     Shader ourShader("shaders/6.1.coordinate_systems.vs", "shaders/6.1.coordinate_systems.fs");
 
+    unsigned int texDirt = loadTexture("assets/dirt.png");
+    unsigned int texStone = loadTexture("assets/stone.png");
 
-    // Vertex Buffer and Array Objects
-    // Element Bufer Objects
-
-
-
-    // Creating The texture
-    unsigned int DirtBlock;
-
-    // The Texture
-    glGenTextures(1, &DirtBlock);
-    glBindTexture(GL_TEXTURE_2D, DirtBlock);
-    // setting The Texture Wrapping Parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // setting The Texture Filtering Parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Loading the image, Creating the texture and generating the Mipmaps
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(false); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char* data = stbi_load("assets/atlas.png", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        GLenum format { static_cast<GLenum>((nrChannels == 4) ? GL_RGBA : GL_RGB) };
-
-        glBindTexture(GL_TEXTURE_2D, DirtBlock);
-        glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-
-    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
-    // -------------------------------------------------------------------------------------------
     ourShader.use();
-    ourShader.setInt("DirtBlock", 0);
-    //ourShader.setInt("texture2", 1);
+    ourShader.setInt("texDirt", 0);
+    ourShader.setInt("texStone", 1);
 
     std::map<std::pair<int, int>, Chunk*> activeChunks;
     std::map<std::pair<int, int>, std::future<Chunk*>> loadingChunks;
 
     FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    noise.SetFrequency(0.02f);
 
     int renderDistance{ 4 };
 
@@ -179,19 +144,15 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    // Render Loop
     while (!glfwWindowShouldClose(window))
     {
-
-        // Input and Camera
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
         processInput(window);
 
-        // Rendering
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         calculateFrameRate(window);
 
@@ -200,52 +161,46 @@ int main()
 
         terrainGeneration(renderDistance, currentChunkX, currentChunkZ, noise, engineSettings, activeChunks, loadingChunks);
         UnloadChunks(renderDistance, currentChunkX, currentChunkZ, activeChunks);
-        // bind textures on corresponding texture units
+
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, DirtBlock);
+        glBindTexture(GL_TEXTURE_2D, texDirt);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texStone);
 
         ourShader.use();
-        glm::mat4 projection{ glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f) };
+        glm::mat4 projection{ glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 1000.0f) };
         glm::mat4 view{ camera.GetViewMatrix() };
 
-        ourShader.setMat4("projection", projection);    
+        ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
         for (auto const& [coord, chunk] : activeChunks) {
             chunk->render(ourShader);
         }
 
-        // swapping buffers and  polling events and UI
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 2. Build the UI
         ImGui::Begin("Engine Diagnostics & Generation");
         ImGui::Text("FPS: %.1f", io.Framerate);
         ImGui::Text("Active Chunks: %zu", activeChunks.size());
         ImGui::Separator();
 
-        ImGui::Text("Terrain Generation");
+        ImGui::Checkbox("Enable Caves", &engineSettings.enableCaves);
         ImGui::SliderFloat("Surface Freq", &engineSettings.surfaceFrequency, 0.001f, 0.05f);
         ImGui::SliderFloat("Cave Freq", &engineSettings.caveFrequency, 0.005f, 0.1f);
         ImGui::SliderFloat("Cave Threshold", &engineSettings.caveThreshold, 0.1f, 0.8f);
         ImGui::SliderInt("Cave Complexity", &engineSettings.caveOctaves, 1, 5);
 
-        // If the user clicks Regenerate, clear all memory and let the engine rebuild
         if (ImGui::Button("Regenerate World", ImVec2(150, 30))) {
             for (auto const& [coord, chunk] : activeChunks) {
-                delete chunk; // Free memory
+                delete chunk;
             }
             activeChunks.clear();
-            // Background threads might still be running, so we clear the loading list carefully
-            loadingChunks.clear();
         }
         ImGui::End();
 
-        // (Render your chunks here)
-
-        // 3. Draw ImGui over the world (Place this right before glfwSwapBuffers)
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -253,13 +208,10 @@ int main()
         glfwPollEvents();
     }
 
-    // Terminating glfw
     glfwTerminate();
     return 0;
 }
 
-
-// Processing all Input Queries
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -278,6 +230,8 @@ void processInput(GLFWwindow* window)
         }
     }
 
+    shiftWasPressed = shiftIsPressed;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         camera.ProcessKeyboard(FORWARD, deltaTime);
     }
@@ -292,22 +246,13 @@ void processInput(GLFWwindow* window)
     }
 }
 
-
-// this function excecutes whenever the widow is resized
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
 
 void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
     using glm::vec3;
-
-    if (!cursorCaptured) {
-        firstMouse = true;
-        return;
-    }
 
     if (firstMouse) {
         lastX = xpos;
@@ -320,7 +265,19 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xOffset, yOffset);
+    if (cursorCaptured) {
+        camera.ProcessMouseMovement(xOffset, yOffset);
+    }
+    else {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+            camera.ProcessMouseMovement(xOffset, yOffset);
+        }
+        else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            float panSpeed = 0.05f;
+            camera.Position -= camera.Right * (xOffset * panSpeed);
+            camera.Position += camera.Up * (yOffset * panSpeed);
+        }
+    }
 }
 
 void scroll_callback([[maybe_unused]] GLFWwindow* window, [[maybe_unused]] double xoffset, double yoffset) {
@@ -334,8 +291,6 @@ void calculateFrameRate(GLFWwindow* window)
 
     if (currentTime - lastTime >= 1.0) {
         double fps = static_cast<double>(frameCount) / (currentTime - lastTime);
-        [[maybe_unused]] double msPerFrame = 1000.0 / static_cast<double>(frameCount);
-
         std::string title = "Engine FPS: " + std::to_string(fps) + "FPS";
         glfwSetWindowTitle(window, title.c_str());
 
@@ -344,10 +299,11 @@ void calculateFrameRate(GLFWwindow* window)
     }
 }
 
-
 void terrainGeneration(int& renderDistance, int& currentChunkX, int& currentChunkZ, FastNoiseLite& noise, TerrainSettings settings, std::map<std::pair<int, int>, Chunk*>& activeChunks, std::map<std::pair<int, int>, std::future<Chunk*>>& loadingChunks) {
 
-    const size_t MaxConcurrentThreads{ 6 };
+    const size_t MaxConcurrentThreads{ 4 };
+    const int MaxChunksPerFrame{ 1 };
+    int chunksSpawnedThisFrame{ 0 };
 
     for (int x{ -renderDistance }; x <= renderDistance; x++) {
         for (int z{ -renderDistance }; z <= renderDistance; z++) {
@@ -357,11 +313,13 @@ void terrainGeneration(int& renderDistance, int& currentChunkX, int& currentChun
 
             std::pair<int, int> chunkCoord{ targetChunkX, targetChunkZ };
 
-            if (activeChunks.find(chunkCoord) == activeChunks.end() and loadingChunks.find(chunkCoord) == loadingChunks.end()) {
+            if (activeChunks.find(chunkCoord) == activeChunks.end() && loadingChunks.find(chunkCoord) == loadingChunks.end()) {
 
-                if (loadingChunks.size() >= MaxConcurrentThreads) {
+                if (loadingChunks.size() >= MaxConcurrentThreads || chunksSpawnedThisFrame >= MaxChunksPerFrame) {
                     goto POLL_THREADS;
                 }
+
+                chunksSpawnedThisFrame++;
 
                 loadingChunks[chunkCoord] = std::async(std::launch::async, [targetChunkX, targetChunkZ, noise, settings]() {
                     Chunk* newChunk = new Chunk(targetChunkX, targetChunkZ);
@@ -397,7 +355,7 @@ void UnloadChunks(int renderDistance, int currentChunkX, int currentChunkZ, std:
         int distanceX{ std::abs(coord.first - currentChunkX) };
         int distanceZ{ std::abs(coord.second - currentChunkZ) };
 
-        if (distanceX > unloadDistance or distanceZ > unloadDistance) {
+        if (distanceX > unloadDistance || distanceZ > unloadDistance) {
             delete chunk;
             it = activeChunks.erase(it);
         }
